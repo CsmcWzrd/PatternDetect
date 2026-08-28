@@ -1,0 +1,149 @@
+{
+    // comment
+    # or
+    # comment
+    use reverse-chronological-order/chronological-order # specifies the order in which to read log files mentioned in this pattern matching file.
+    use date-after/date-before <date> # specifies date range to scan on 
+    use reboot-timestamp-from-message "" # specifies reboot message, should send an auto debug message along with the timestamp in localtime with timezone when the reboot happened 
+    use stop-on-reboot <count> //if missing count = 1, end-of-all-log # tells when to stop, n reboots before if reverse-chronological-order, or n reboots after if chronological order, if n is 2, stop at two
+    # if stop-on-reboot is configuration is missing, it scans the logs till the last log message.
+    # if n is 2 in both cases
+    # logs 
+    # reboot 
+    # logs 
+    # reboot : stop here
+    # if it starts with reboot log message 
+    # reboot 
+    # logs 
+    # reboot : stop here 
+    use log-rotated // Use log rotated files as well for scanning, multiple scenarios could exists, example pattern:A 
+    use auto-uncompress //skip if it doesn't exist, always on, no need to specify this at all
+    use processing-folder <complete-folder-path> # where all the processed data and log files are generated
+    use convert-to-local-time-from-other <TimeZone>, convert-to-utc-from-other <TimeZone>, convert-to-gmt-from-other <TimeZone>, convert-to-tz-from-other <TimeZone> <TimeZone> # converts timestamp to the localtime with associated timezone
+    use detail-pattern-matched-log <log-file> # detailed information about the pattern matching will be reported in this file
+    use report-destination terminal/ip:tcp:portnumber/ip/tcp:ssl:portnumber
+    # multiple report-destination is possible both debug message and report message are sent to the same destination.
+    # report-destination should support ipv6 and ipv4
+
+    # A pattern should start with an Identifier (unlike C programing language there is no under score, use camelCase instead. A: [ is valid, just as, thisIsVeryImportantPattern: [ is also valid
+     A: [
+        title "Scan for ..."
+        log filename
+        component name 
+        log message fragment separator " " 
+        # example log message "Linux is booting, boot time is" separtor " " , the actual log message could be "Linux is booting, boot time is 12 May 2026 12:45:57"
+        # this is just an example it doesn't have anything to do with the below grab
+        # example for below grab : log message "Linux is booting, boot time is 2026-05-12 12:45:57 IST from fedora core linux" 
+        grab timestamp:1a, value:1a, value:1b@
+        # here grab gets the value "2026-05-12 12:45:57 IST" for timestamp:1a and value:1a gets the value "from", value:1b@ gets the value "fedora core linux" in an array/list which means value:1b@ =[ "fedora", "core", "linux" ]
+        # gets the values from log messages, interprets them as timestamp (all possible timestamp format possible including epoch etc)  and save them temporarily, in "timestamp:1a" string with associated value always conveted to UTC epoch microseconds. 
+        # value:1a could be anything from a number , hexvalue, binary value... etc to string stored as "value:1a", here 1 represents the index value + 1 of "log message", 'a' is the variable name. together they form a variable "value:1a".
+        # by default the log message separtor is a space " ", which can be changed by stating what separator to use in separtor "/"
+        # grab value isn't restricted to a single number or character for example value:<log message number><variable name, can be multiple letters><@ - if its an array><array subscript>
+        # valid "value" values are as follows:
+        # value:1abc
+        # value:1a
+        # value:@ (whole line in array / list format with the seperator), value:@1, value:@2, value:@0 , maintains this by default.
+        # value:1data@ (excluding all the previous grabbed values ), value:1date@0, value:1date@1, value:1date@2
+
+
+        log message fragment # here fragment is a log message fragment and isn't a command or keyword for this file.
+        grab timestamp:2a, value:2a, value:2b@
+        log message fragment 
+        grab timestamp:3a, value:3a, value:3b@
+        log message fragment 
+        grab timestamp:4a, value:4a, value:4b@
+        report "Initial problem1 found" // report is also a message sent to the command line ouput or a ip:tcp:portnumber / ip:tcp:ssl:portnumber port number, any number of report lines are possible, prefix for report message is "REPORT: " 
+
+        debug "message" timestamp:1a value:1a ... //debug is a command line output command similar to printf in C programming language, or output to ip:tcp / ip:tcp:ssl port number with the "message" and parameter supplied and is separated by space " ", prefix for debug message is "PATTERNDEBUG: " 
+
+        //optional
+        check  value:1a "/usr/local/etc/configfile" equals/not-equals/less-than/greater-than/less-than-equal-to/greater-than-equal-to # "check" statement is equivalent to "if" in c code , equals ... etc are comparison opertors 
+        #each of the check may be followed by a "check-or" ... etc and followed by another "check" statement
+        #each "check" is allows only one comparison, and the comparison operator comes at the end 
+        #each array value can be accessed by value:1b@0, first element of array / list, @1 - second element of the array / list, @2 - the third element of array / list
+        check-or/check-and/check-not-or/check-not-and/check-and-not/check-or-not/default missing would be 'check-and'
+        check  value:1b@2 "invalid date" equals
+        
+        on-hit: B # on successful matching which pattern to check for next
+        on-hit: D
+        on-hit: E
+        # here on-hit cannot back track to a previous pattern definition.
+        # which means A -> B,D,E -> A , is not a valid operational scenario, it has to be reported before the program starts execution phase and the program should exit.
+     ]
+
+    B: [
+        title "Scan for ..."
+        within timestamp:1a + delta (seconds) 
+        # within what timestamp min and max (timestamp range) to check for the below set of "log message" 
+        # here timestamp:1a has to be corelated to the previous pattern matching which is "A"
+        log filename
+        component name #additional information regarding the component this message is related to 
+        log message fragment
+        grab ... //(grab timestamp, values etc ... etc)
+        report "Problem1 issue marker 2 observed" # prints this
+
+        //optional
+        check  value:1d "/usr/local/etc/configfile" equals/not-equals/less-than/greater-than/less-than-equal-to/greater-than-equal-to
+        check-or/check-and/check-not-or/check-not-and/check-and-not/check-or-not/default missing would be 'check-and'
+        check  value:1e@2 "invalid date" equals
+
+        on-hit: C
+     ]
+
+     C: [
+        title "Scan for ..."
+        within timestamp:1a + delta
+        # within what timestamp min and max (timestamp range) to check for the below set of "log message" 
+        # here timestamp:1a has to be corelated to the previous pattern matching which is "B"
+        log filename
+        component name 
+        log message fragment
+        grab ... //(grab timestamp, values etc ... etc)
+
+        //optional
+        check  value:1d "/usr/local/etc/configfile" equals/not-equals/less-than/greater-than/less-than-equal-to/greater-than-equal-to
+        check-or/check-and/check-not-or/check-not-and/check-and-not/check-or-not/default missing would be 'check-and'
+        check  value:1e@1 "invalid date" equals
+        
+        report "Problem1 issue marker 1 confirmed, problem 1 exists"
+     ]
+
+     D: [
+        title "Scan for ..."
+        within timestamp:1a + delta
+        # within what timestamp min and max (timestamp range) to check for the below set of "log message" 
+        # here timestamp:1a has to be corelated to the previous pattern matching which is "A"
+        log filename
+        component name 
+        log message fragment
+        grab ... //(grab timestamp, values etc ... etc)
+
+        //optional
+        check  value:1d "/usr/local/etc/configfile" equals/not-equals/less-than/greater-than/less-than-equal-to/greater-than-equal-to
+        check-or/check-and/check-not-or/check-not-and/check-and-not/check-or-not/default missing would be 'check-and'
+        check  value:1e@1 "invalid date" equals
+
+        report " problem 1 : the variant 1 issue observed "
+     ]
+
+     E: [
+        title "Scan for ..."
+        within timestamp:1a + delta
+        # within what timestamp min and max (timestamp range) to check for the below set of "log message" 
+        # here timestamp:1a has to be corelated to the previous pattern matching which is "A"
+        log filename
+        component name 
+        log message fragment
+        grab ... //(grab timestamp, values etc ... etc)
+
+        //optional
+        check  value:1d "/usr/local/etc/configfile" equals/not-equals/less-than/greater-than/less-than-equal-to/greater-than-equal-to
+        check-or/check-and/check-not-or/check-not-and/check-and-not/check-or-not/default missing would be 'check-and'
+        check  value:1e@1 "invalid date" equals
+        
+        report " problem 1 : the variant 1 issue confirmed "
+     ]
+}
+
+

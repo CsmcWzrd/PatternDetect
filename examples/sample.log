@@ -1,0 +1,4 @@
+2026-05-12 12:45:50 UTC kernel: harmless message
+2026-05-12 12:45:57 UTC kernel: Linux is booting, boot time is 2026-05-12 12:45:57 UTC from fedora core linux
+2026-05-12 12:46:02 UTC auth: service warning invalid date marker
+2026-05-12 12:47:10 UTC app: late message outside the one minute window
