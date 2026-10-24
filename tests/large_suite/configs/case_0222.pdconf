@@ -1,0 +1,75 @@
+{
+    use chronological-order
+    use report-destination terminal
+
+    P00: [
+        title "Case 0222 pattern P00"
+        log message Component086 PDET_C0222_P00_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0222_P00_S00 equals
+        report "CASE 0222 PATTERN P00 HIT" match:file match:line value:1status
+        on-hit: P01
+    ]
+
+    P01: [
+        title "Case 0222 pattern P01"
+        within timestamp:1a + 2678400
+        log message Component003 PDET_C0222_P01_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component003 PDET_C0222_P01_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component003 PDET_C0222_P01_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0222_P01_S02 equals
+        report "CASE 0222 PATTERN P01 HIT" match:file match:line value:1status
+        on-hit: P02
+    ]
+
+    P02: [
+        title "Case 0222 pattern P02"
+        within timestamp:1a + 2678400
+        log message Component020 PDET_C0222_P02_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component020 PDET_C0222_P02_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0222_P02_S01 equals
+        report "CASE 0222 PATTERN P02 HIT" match:file match:line value:1status
+        on-hit: P03
+    ]
+
+    P03: [
+        title "Case 0222 pattern P03"
+        within timestamp:1a + 2678400
+        log message Component037 PDET_C0222_P03_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0222_P03_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0222_P03_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0222_P03_S03 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0222_P03_S04 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0222_P03_S05 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0222_P03_S06 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0222_P03_S06 equals
+        report "CASE 0222 PATTERN P03 HIT" match:file match:line value:1status
+        on-hit: P04
+    ]
+
+    P04: [
+        title "Case 0222 pattern P04"
+        within timestamp:1a + 2678400
+        log message Component054 PDET_C0222_P04_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component054 PDET_C0222_P04_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component054 PDET_C0222_P04_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0222_P04_S02 equals
+        report "CASE 0222 PATTERN P04 HIT" match:file match:line value:1status
+    ]
+
+}

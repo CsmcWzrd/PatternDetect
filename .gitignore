@@ -1,0 +1,11 @@
+/build/
+/build-*/
+/java-log-viewer/build/
+/java-log-viewer/dist/
+/tests/large_suite_operation_logs/
+*.operations.*.human.log
+*.operations.*.script.log
+patterndetect.operations.*.human.log
+patterndetect.operations.*.script.log
+*.pyc
+__pycache__/

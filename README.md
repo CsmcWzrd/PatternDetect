@@ -20,7 +20,7 @@ patterndetect --expr "add(multiply(2,3),4)"
   - reboot message detection and stop-on-reboot.
   - rotated log file discovery.
   - optional `.gz` log reading when zlib is available.
-  - terminal and TCP report destinations; TLS destinations are recognized and can be enabled with OpenSSL builds.
+  - terminal and TCP report destinations; TLS is not yet a secure working transport (see note at end).
   - named patterns such as `A: [ ... ]`.
   - pattern title, log file, component, separator, fragments, captures, checks, report, debug, and `on-hit` chaining.
   - `on-hit` graph validation to reject cycles/backtracking before scan execution.
@@ -81,7 +81,7 @@ If zlib is installed, `.gz` files are enabled automatically by default:
 cmake -S . -B build -DPATTERNDETECT_ENABLE_ZLIB=ON
 ```
 
-TLS report destinations can be enabled with OpenSSL:
+OpenSSL build linkage can be enabled, but **TLS report transport is not implemented securely**:
 
 ```sh
 cmake -S . -B build -DPATTERNDETECT_ENABLE_OPENSSL=ON
@@ -230,3 +230,111 @@ The latest sandbox validation report is stored at:
 ```text
 tests/LARGE_SUITE_VALIDATION.md
 ```
+
+## Operation logs (v1.2)
+
+PatternDetect writes **two** operation logs by default, both flushed as events
+occur. Each invocation has a unique per-process output prefix:
+
+```text
+patterndetect.operations.<pid>.human.log
+patterndetect.operations.<pid>.script.log
+```
+
+If the DSL includes `use processing-folder <path>`, the default log files are
+placed in that folder (created automatically). The output prefix may be
+overridden explicitly:
+
+```sh
+./build/patterndetect --config examples/patterndetect.conf --log examples/sample.log \
+  --operation-log-prefix /tmp/myscan
+# /tmp/myscan.human.log and /tmp/myscan.script.log
+
+./build/patterndetect --config examples/patterndetect.conf --log examples/sample.log \
+  --operation-log-prefix /tmp/humanscan --human-readable-only
+
+./build/patterndetect --config examples/patterndetect.conf --log examples/sample.log \
+  --operation-log-prefix /tmp/scriptscan --script-readable-only
+```
+
+Other options:
+
+- `--filter-host <hostname+IP>`: optionally override the recorded identity of
+  the host on which the input logs were filtered; defaults to the running host.
+- `--script-readable--only`: also accepted as an alias for
+  `--script-readable-only`, for compatibility with the requested spelling.
+- The two `--*-only` options are mutually exclusive.
+
+The existing `REPORT:`, `PATTERNDEBUG:` and `PATTERNWARN:` terminal/network
+output remains unchanged. Operation logging is a separate audit stream.
+
+### Human-readable format
+
+Every record contains five **logical fields**; long fields can occupy more
+than one physical line. Each physical line starts with four spaces, and wraps
+at 128 display columns (including indent). Two empty lines follow each record.
+
+1. A zero-padded **16-character depth**, host+IP of the running process,
+   ISO-8601 UTC timestamp with six microsecond digits, host+IP of the filtering
+   machine, and its UTC timestamp. Header items use `  )))))  `.
+2. Severity (`INFO`, `DEBUG`, `REPORT`, `WARN`, `ERROR`).
+3. `PatternDetect:<process-id>:<thread-id>  )))))  event=<id>;parent=<id>`.
+   The latter metadata allows reliable cross-process/viewer correlation.
+4. Summary trail from the top-level operation to the current event, separated
+   using `  )))))  `.
+5. The PatternDetect application's actual event message (report, debug output,
+   matched pattern, scanned file count, validation result, and so on).
+
+### Machine-readable format
+
+The same five fields are emitted on **one line**, separated by exactly
+`  -----  `. Fields 1, 3 and 4 retain their internal `  )))))  ` list delimiter.
+Within any payload text, either reserved separator is escaped **character by
+character** to `\\xHH` (including both surrounding spaces); newlines become
+`\\n`, tabs `\\t`, carriage returns `\\r`, and backslashes `\\\\`.
+Nontext/binary payloads are printed as `base64:<RFC4648-encoded-bytes>`.
+
+Both logs are emitted with the same event IDs and hierarchy. A single root
+operation has `parent=0`; matches, reports, and chained patterns are children
+of the operation that produced them.
+
+See [docs/OPERATION_LOG_FORMAT.md](docs/OPERATION_LOG_FORMAT.md) for an example,
+parser contract, and details.
+
+## Optional live Java Swing viewer
+
+`java-log-viewer/` is a standalone Ant/Make/NetBeans (2022 NetBeans 16) Java
+Swing project, **not built by CMake**. Build with JDK/OpenJDK 11+:
+
+```sh
+cd java-log-viewer
+ant jar test
+java -jar dist/PatternDetectLogViewer.jar --log /tmp/myscan.script.log
+```
+
+Open a root-level operation, then click each child event to open the next level
+in a new, live-updating tab. See
+[java-log-viewer/README.md](java-log-viewer/README.md).
+
+## Test status (October 24, 2026)
+
+- Native C++ build: GCC/CMake on Linux: **pass**.
+- Native operation logger CTest: **pass**.
+- Existing smoke test: **pass**.
+- Deterministic 1,000-case generated log suite: **1,000 passed**, 0 failed.
+  Covers 100 log sets, 100 component names, 300–10,000 log lines, 0–10
+  rotations, 5–10 patterns, 1–10 statements per pattern, and 1–10 chain depth.
+  Each case also validates the enabled operation log format(s).
+- Java Swing Ant/Make build and parser tests: **pass** using OpenJDK 21
+  targeting Java 11 class files.
+- Live GUI smoke with an Xvfb display: **pass**, including 2 levels of
+  realtime drilldown and updates to already opened tabs.
+
+Linux build/tests are verified. macOS, Windows/Visual Studio, and NetBeans IDE
+builds are supplied but **have not been executed** in this environment.
+
+**Note on existing transport behavior:** The earlier code's TLS report
+transport is not a completed authenticated TLS implementation. The
+`PATTERNDETECT_ENABLE_OPENSSL` option alone does not make that path secure;
+use terminal or plain TCP only in trusted networks until the transport is
+implemented and security-tested. Operation logs are local files.

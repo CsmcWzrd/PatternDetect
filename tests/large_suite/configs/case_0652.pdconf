@@ -1,0 +1,112 @@
+{
+    use chronological-order
+    use log-rotated
+    use report-destination terminal
+
+    P00: [
+        title "Case 0652 pattern P00"
+        log message Component076 PDET_C0652_P00_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component076 PDET_C0652_P00_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P00_S01 equals
+        report "CASE 0652 PATTERN P00 HIT" match:file match:line value:1status
+        on-hit: P01
+        on-hit: P02
+        on-hit: P03
+        on-hit: P04
+        on-hit: P05
+        on-hit: P06
+        on-hit: P07
+        on-hit: P08
+    ]
+
+    P01: [
+        title "Case 0652 pattern P01"
+        within timestamp:1a + 2678400
+        log message Component093 PDET_C0652_P01_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P01_S00 equals
+        report "CASE 0652 PATTERN P01 HIT" match:file match:line value:1status
+    ]
+
+    P02: [
+        title "Case 0652 pattern P02"
+        within timestamp:1a + 2678400
+        log message Component010 PDET_C0652_P02_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component010 PDET_C0652_P02_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component010 PDET_C0652_P02_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P02_S02 equals
+        report "CASE 0652 PATTERN P02 HIT" match:file match:line value:1status
+    ]
+
+    P03: [
+        title "Case 0652 pattern P03"
+        within timestamp:1a + 2678400
+        log message Component027 PDET_C0652_P03_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component027 PDET_C0652_P03_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P03_S01 equals
+        report "CASE 0652 PATTERN P03 HIT" match:file match:line value:1status
+    ]
+
+    P04: [
+        title "Case 0652 pattern P04"
+        within timestamp:1a + 2678400
+        log message Component044 PDET_C0652_P04_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P04_S00 equals
+        report "CASE 0652 PATTERN P04 HIT" match:file match:line value:1status
+    ]
+
+    P05: [
+        title "Case 0652 pattern P05"
+        within timestamp:1a + 2678400
+        log message Component061 PDET_C0652_P05_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component061 PDET_C0652_P05_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component061 PDET_C0652_P05_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P05_S02 equals
+        report "CASE 0652 PATTERN P05 HIT" match:file match:line value:1status
+    ]
+
+    P06: [
+        title "Case 0652 pattern P06"
+        within timestamp:1a + 2678400
+        log message Component078 PDET_C0652_P06_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component078 PDET_C0652_P06_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P06_S01 equals
+        report "CASE 0652 PATTERN P06 HIT" match:file match:line value:1status
+    ]
+
+    P07: [
+        title "Case 0652 pattern P07"
+        within timestamp:1a + 2678400
+        log message Component095 PDET_C0652_P07_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P07_S00 equals
+        report "CASE 0652 PATTERN P07 HIT" match:file match:line value:1status
+    ]
+
+    P08: [
+        title "Case 0652 pattern P08"
+        within timestamp:1a + 2678400
+        log message Component012 PDET_C0652_P08_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component012 PDET_C0652_P08_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component012 PDET_C0652_P08_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0652_P08_S02 equals
+        report "CASE 0652 PATTERN P08 HIT" match:file match:line value:1status
+    ]
+
+}

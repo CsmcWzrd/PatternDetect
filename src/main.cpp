@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <filesystem>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -19,6 +20,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "operation_log.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -36,7 +38,7 @@
 
 namespace pd {
 
-static const char *kVersion = "1.1.0";
+static const char *kVersion = "1.2.0";
 
 static inline std::string ltrim(std::string s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
@@ -686,7 +688,7 @@ private:
             cfg.stopOnRebootCount = words.size() >= 2 ? std::atoi(words[1].c_str()) : 1;
         } else if (lower == "log-rotated") cfg.useRotated = true;
         else if (lower == "auto-uncompress") cfg.autoUncompress = true;
-        else if (startsWith(lower, "processing-folder ")) cfg.processingFolder = trim(rest.substr(18));
+        else if (startsWith(lower, "processing-folder ")) cfg.processingFolder = unquote(trim(rest.substr(18)));
         else if (startsWith(lower, "detail-pattern-matched-log ")) cfg.detailLog = trim(rest.substr(27));
         else if (startsWith(lower, "report-destination ")) {
             std::string d = trim(rest.substr(19));
@@ -842,16 +844,20 @@ public:
 
 class Reporter {
 public:
-    explicit Reporter(const Config &cfg) : destinations_(cfg.destinations) {
+    explicit Reporter(const Config &cfg, OperationLog &operations) : destinations_(cfg.destinations), operations_(operations) {
         if (!cfg.detailLog.empty()) detail_.open(cfg.detailLog.c_str(), std::ios::app);
     }
 
     void report(const std::string &msg) { emit("REPORT: " + msg); }
     void debug(const std::string &msg) { emit("PATTERNDEBUG: " + msg); }
-    void warn(const std::string &msg) { emit("PATTERNWARN: " + msg); }
+    void warn(const std::string &msg) {
+        emit("PATTERNWARN: " + msg);
+        operations_.write("WARN", 0, {"PatternDetect warning"}, "PATTERNWARN: " + msg, 0);
+    }
 
 private:
     std::vector<std::string> destinations_;
+    OperationLog &operations_;
     std::ofstream detail_;
 
     static bool parseDestination(const std::string &d, std::string &host, std::string &port, bool &ssl) {
@@ -958,24 +964,34 @@ static std::vector<std::string> rotatedCandidates(const std::string &path) {
 
 class Engine {
 public:
-    Engine(Config cfg, std::vector<std::string> cliLogs)
-        : cfg_(std::move(cfg)), cliLogs_(std::move(cliLogs)), reporter_(cfg_) {}
+    Engine(Config cfg, std::vector<std::string> cliLogs, OperationLog &operations)
+        : cfg_(std::move(cfg)), cliLogs_(std::move(cliLogs)), reporter_(cfg_, operations), operations_(operations) {}
 
     int validateOnly(bool dumpConfig) {
+        rootEvent_ = operations_.write("INFO", 0, {"Validate configuration"}, "Validation started", 0);
         int issues = validateGraph();
         for (const auto &w : cfg_.warnings) reporter_.warn(w);
         if (dumpConfig) dumpParsedConfig();
+        operations_.write(issues ? "ERROR" : "INFO", rootEvent_, {"Validate configuration", "Complete"},
+                          "Validation issues=" + std::to_string(issues), 1);
         return issues == 0 ? 0 : 2;
     }
 
     int run(bool dumpConfig) {
+        rootEvent_ = operations_.write("INFO", 0, {"PatternDetect execution"}, "Scanning started", 0);
         int issues = validateGraph();
         for (const auto &w : cfg_.warnings) reporter_.warn(w);
-        if (issues != 0) return 2;
+        if (issues != 0) {
+            operations_.write("ERROR", rootEvent_, {"PatternDetect execution", "Validate"}, "Graph validation failed", 1);
+            return 2;
+        }
         if (dumpConfig) dumpParsedConfig();
         loadLogs();
+        operations_.write("INFO", rootEvent_, {"PatternDetect execution", "Read logs"},
+                          "Loaded " + std::to_string(logs_.size()) + " log lines", 1);
         if (logs_.empty()) {
             reporter_.warn("no log lines loaded; provide --log files or active pattern log file paths");
+            operations_.write("WARN", rootEvent_, {"PatternDetect execution", "Read logs"}, "No logs loaded", 1);
             return 1;
         }
         auto roots = rootPatternIds();
@@ -983,9 +999,11 @@ public:
         for (const auto &root : roots) {
             for (std::size_t i : rootCandidateStarts(root)) {
                 Context ctx;
-                runPattern(root, i, ctx, 0);
+                runPattern(root, i, ctx, 0, rootEvent_, {"PatternDetect execution"});
             }
         }
+        operations_.write("INFO", rootEvent_, {"PatternDetect execution", "Complete"},
+                          "Scan finished; unique matched patterns=" + std::to_string(emitted_.size()), 1);
         return 0;
     }
 
@@ -993,6 +1011,8 @@ private:
     Config cfg_;
     std::vector<std::string> cliLogs_;
     Reporter reporter_;
+    OperationLog &operations_;
+    std::uint64_t rootEvent_ = 0;
     std::vector<LogLine> logs_;
     std::map<std::string, std::size_t> patternIndex_;
     std::set<std::string> emitted_;
@@ -1247,7 +1267,8 @@ private:
         return true;
     }
 
-    bool runPattern(const std::string &id, std::size_t start, Context ctx, int depth) {
+    bool runPattern(const std::string &id, std::size_t start, Context ctx, int depth,
+                    std::uint64_t parentEvent, std::vector<std::string> trail) {
         if (depth > 128) { reporter_.warn("maximum on-hit depth reached"); return false; }
         auto pi = patternIndex_.find(id);
         if (pi == patternIndex_.end()) return false;
@@ -1273,11 +1294,24 @@ private:
         if (!checksOk(p, local)) return false;
         std::string unique = p.id;
         for (const auto &ml : matchedLines) unique += "|" + ml;
+        trail.push_back("Matched " + p.id + ": " + p.title);
+        const std::uint64_t patternEvent = operations_.write("INFO", parentEvent, trail,
+            "Matched pattern " + p.id + " using " + std::to_string(matchedLines.size()) + " log messages", depth + 1);
         if (emitted_.insert(unique).second) {
-            for (const auto &d : p.debugs) reporter_.debug(interpolate(d.message, d, local));
-            for (const auto &r : p.reports) reporter_.report(interpolate(r.message, r, local));
+            for (const auto &d : p.debugs) {
+                const std::string text = interpolate(d.message, d, local);
+                reporter_.debug(text);
+                auto path = trail; path.push_back("Debug output");
+                operations_.write("DEBUG", patternEvent, path, "PATTERNDEBUG: " + text, depth + 2);
+            }
+            for (const auto &r : p.reports) {
+                const std::string text = interpolate(r.message, r, local);
+                reporter_.report(text);
+                auto path = trail; path.push_back("Report emitted");
+                operations_.write("REPORT", patternEvent, path, "REPORT: " + text, depth + 2);
+            }
         }
-        for (const auto &child : p.onHits) (void)runPattern(child, cursor, local, depth + 1);
+        for (const auto &child : p.onHits) (void)runPattern(child, cursor, local, depth + 1, patternEvent, trail);
         return true;
     }
 };
@@ -1293,6 +1327,10 @@ static void printHelp() {
               << "  --expr <expr>         Evaluate recursive expression and exit\n"
               << "  --validate-only       Parse and validate config/on-hit graph only\n"
               << "  --dump-config         Print parsed pattern summary to stderr\n"
+              << "  --operation-log-prefix <path>  Output prefix (default patterndetect.operations.<pid>)\n"
+              << "  --filter-host <host+ip>       Filtering host identity (defaults to local host)\n"
+              << "  --human-readable-only        Write only the human-readable operation log\n"
+              << "  --script-readable-only       Write only the machine-readable operation log\n"
               << "  --version             Print version\n"
               << "  -h, --help            Show this help\n";
 }
@@ -1306,6 +1344,8 @@ int main(int argc, char **argv) {
         std::vector<std::string> logs;
         bool validateOnly = false;
         bool dumpConfig = false;
+        std::string operationPrefix, filteringHost;
+        bool onlyHuman = false, onlyScript = false;
         for (int i = 1; i < argc; ++i) {
             std::string a = argv[i];
             if (a == "-h" || a == "--help") { pd::printHelp(); return 0; }
@@ -1315,16 +1355,26 @@ int main(int argc, char **argv) {
             else if (a == "--expr" && i + 1 < argc) expr = argv[++i];
             else if (a == "--validate-only") validateOnly = true;
             else if (a == "--dump-config") dumpConfig = true;
+            else if (a == "--operation-log-prefix" && i + 1 < argc) operationPrefix = argv[++i];
+            else if (a == "--filter-host" && i + 1 < argc) filteringHost = argv[++i];
+            else if (a == "--human-readable-only") onlyHuman = true;
+            else if (a == "--script-readable-only" || a == "--script-readable--only") onlyScript = true;
             else {
                 std::cerr << "unknown or incomplete option: " << a << "\n";
                 pd::printHelp();
                 return 2;
             }
         }
+        if (onlyHuman && onlyScript) throw std::runtime_error("operation log modes are mutually exclusive");
+        const auto mode = onlyHuman ? pd::OperationLog::Mode::HumanOnly
+                        : onlyScript ? pd::OperationLog::Mode::ScriptOnly : pd::OperationLog::Mode::Both;
         if (!expr.empty()) {
+            pd::OperationLog operations(operationPrefix, mode, filteringHost);
+            const auto event = operations.write("INFO", 0, {"Recursive expression"}, "Evaluate expression", 0);
             pd::Context ctx;
             pd::Value v = pd::ExpressionEvaluator(ctx).eval(expr);
             std::cout << v.debugString() << std::endl;
+            operations.write("INFO", event, {"Recursive expression", "Result"}, v.debugString(), 1);
             return 0;
         }
         if (configPath.empty()) {
@@ -1332,7 +1382,14 @@ int main(int argc, char **argv) {
             return 2;
         }
         pd::Config cfg = pd::ConfigParser().parseFile(configPath);
-        pd::Engine engine(std::move(cfg), std::move(logs));
+        if (operationPrefix.empty() && !cfg.processingFolder.empty()) {
+            const std::filesystem::path folder(cfg.processingFolder);
+            std::filesystem::create_directories(folder);
+            operationPrefix = (folder / ("patterndetect.operations." +
+                std::to_string(pd::OperationLog::currentProcessId()))).string();
+        }
+        pd::OperationLog operations(operationPrefix, mode, filteringHost);
+        pd::Engine engine(std::move(cfg), std::move(logs), operations);
         if (validateOnly) return engine.validateOnly(dumpConfig);
         return engine.run(dumpConfig);
     } catch (const std::exception &ex) {

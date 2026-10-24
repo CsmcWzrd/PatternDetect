@@ -1,0 +1,60 @@
+{
+    use chronological-order
+    use log-rotated
+    use report-destination terminal
+
+    P00: [
+        title "Case 0510 pattern P00"
+        log message Component030 PDET_C0510_P00_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0510_P00_S00 equals
+        report "CASE 0510 PATTERN P00 HIT" match:file match:line value:1status
+    ]
+
+    P01: [
+        title "Case 0510 pattern P01"
+        within timestamp:1a + 2678400
+        log message Component047 PDET_C0510_P01_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component047 PDET_C0510_P01_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component047 PDET_C0510_P01_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0510_P01_S02 equals
+        report "CASE 0510 PATTERN P01 HIT" match:file match:line value:1status
+    ]
+
+    P02: [
+        title "Case 0510 pattern P02"
+        within timestamp:1a + 2678400
+        log message Component064 PDET_C0510_P02_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component064 PDET_C0510_P02_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0510_P02_S01 equals
+        report "CASE 0510 PATTERN P02 HIT" match:file match:line value:1status
+    ]
+
+    P03: [
+        title "Case 0510 pattern P03"
+        within timestamp:1a + 2678400
+        log message Component081 PDET_C0510_P03_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0510_P03_S00 equals
+        report "CASE 0510 PATTERN P03 HIT" match:file match:line value:1status
+    ]
+
+    P04: [
+        title "Case 0510 pattern P04"
+        within timestamp:1a + 2678400
+        log message Component098 PDET_C0510_P04_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component098 PDET_C0510_P04_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component098 PDET_C0510_P04_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0510_P04_S02 equals
+        report "CASE 0510 PATTERN P04 HIT" match:file match:line value:1status
+    ]
+
+}

@@ -1,0 +1,126 @@
+{
+    use chronological-order
+    use log-rotated
+    use report-destination terminal
+
+    P00: [
+        title "Case 0395 pattern P00"
+        log message Component035 PDET_C0395_P00_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component035 PDET_C0395_P00_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component035 PDET_C0395_P00_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P00_S02 equals
+        report "CASE 0395 PATTERN P00 HIT" match:file match:line value:1status
+        on-hit: P01
+        on-hit: P06
+        on-hit: P07
+        on-hit: P08
+        on-hit: P09
+    ]
+
+    P01: [
+        title "Case 0395 pattern P01"
+        within timestamp:1a + 2678400
+        log message Component052 PDET_C0395_P01_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component052 PDET_C0395_P01_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P01_S01 equals
+        report "CASE 0395 PATTERN P01 HIT" match:file match:line value:1status
+        on-hit: P02
+    ]
+
+    P02: [
+        title "Case 0395 pattern P02"
+        within timestamp:1a + 2678400
+        log message Component069 PDET_C0395_P02_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P02_S00 equals
+        report "CASE 0395 PATTERN P02 HIT" match:file match:line value:1status
+        on-hit: P03
+    ]
+
+    P03: [
+        title "Case 0395 pattern P03"
+        within timestamp:1a + 2678400
+        log message Component086 PDET_C0395_P03_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component086 PDET_C0395_P03_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component086 PDET_C0395_P03_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P03_S02 equals
+        report "CASE 0395 PATTERN P03 HIT" match:file match:line value:1status
+        on-hit: P04
+    ]
+
+    P04: [
+        title "Case 0395 pattern P04"
+        within timestamp:1a + 2678400
+        log message Component003 PDET_C0395_P04_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component003 PDET_C0395_P04_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P04_S01 equals
+        report "CASE 0395 PATTERN P04 HIT" match:file match:line value:1status
+        on-hit: P05
+    ]
+
+    P05: [
+        title "Case 0395 pattern P05"
+        within timestamp:1a + 2678400
+        log message Component020 PDET_C0395_P05_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P05_S00 equals
+        report "CASE 0395 PATTERN P05 HIT" match:file match:line value:1status
+    ]
+
+    P06: [
+        title "Case 0395 pattern P06"
+        within timestamp:1a + 2678400
+        log message Component037 PDET_C0395_P06_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0395_P06_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component037 PDET_C0395_P06_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P06_S02 equals
+        report "CASE 0395 PATTERN P06 HIT" match:file match:line value:1status
+    ]
+
+    P07: [
+        title "Case 0395 pattern P07"
+        within timestamp:1a + 2678400
+        log message Component054 PDET_C0395_P07_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component054 PDET_C0395_P07_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P07_S01 equals
+        report "CASE 0395 PATTERN P07 HIT" match:file match:line value:1status
+    ]
+
+    P08: [
+        title "Case 0395 pattern P08"
+        within timestamp:1a + 2678400
+        log message Component071 PDET_C0395_P08_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P08_S00 equals
+        report "CASE 0395 PATTERN P08 HIT" match:file match:line value:1status
+    ]
+
+    P09: [
+        title "Case 0395 pattern P09"
+        within timestamp:1a + 2678400
+        log message Component088 PDET_C0395_P09_S00 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component088 PDET_C0395_P09_S01 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        log message Component088 PDET_C0395_P09_S02 separator " "
+        grab timestamp:1a, value:1status, value:1tail@
+        check value:1status OK_C0395_P09_S02 equals
+        report "CASE 0395 PATTERN P09 HIT" match:file match:line value:1status
+    ]
+
+}

@@ -1,49 +1,91 @@
-# Build Verification
+# PatternDetect v1.2 build and test verification — 2026-10-24
 
-Verified in the sandbox with GCC/CMake:
+Environment: Linux x86-64; CMake, GCC and Clang toolchains; OpenJDK 21;
+Apache Ant; Xvfb virtual display. Tests were actually executed here.
+The cross-platform project files are included; no physical Windows 10+
+or macOS build/test was run in this environment.
+
+## C++ native build + native operation log unit test
 
 ```text
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-./build/patterndetect --expr 'add(multiply(2,3),4)'
-# 10
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPATTERNDETECT_BUILD_TESTS=ON
+cmake --build build -j4
+cd build && ctest --output-on-failure
+1/1 operation_log_test: Passed
+```
+
+Unit test verifies escaped 9-byte human and script separators, output
+formatting and 128-column width, Base64 binary payload, depth and parent
+metadata, and human-only/script-only file creation.
+
+## Existing matcher regression tests
+
+```text
 ./tests/run_smoke_tests.sh ./build/patterndetect
-# PatternDetect smoke tests passed
-```
+PatternDetect smoke tests passed
 
-Large generated suite verification:
-
-```text
-./tests/generate_large_suite.py --output tests/large_suite --cases 1000 --logsets 100 --force
-./tests/run_large_suite.py --binary ./build/patterndetect --suite tests/large_suite --timeout 15 --jobs 8 --report tests/LARGE_SUITE_VALIDATION.md
-```
-
-Result from the sandbox run:
-
-```text
+python3 tests/run_large_suite.py --binary ./build/patterndetect \
+  --suite tests/large_suite --jobs 8 --timeout 30 \
+  --report tests/LARGE_SUITE_VALIDATION_2026_10_24.md
 validated 100/1000 cases
-validated 200/1000 cases
-validated 300/1000 cases
-validated 400/1000 cases
-validated 500/1000 cases
-validated 600/1000 cases
-validated 700/1000 cases
-validated 800/1000 cases
-validated 900/1000 cases
+...
 validated 1000/1000 cases
-PatternDetect large suite: 1000 cases, failures=0, elapsed=8.153s
-Validation report: /mnt/data/PatternDetect/tests/LARGE_SUITE_VALIDATION.md
+PatternDetect large suite: 1000 cases, failures=0, elapsed=3.289s
 ```
 
-Coverage from the generated-suite manifest:
+The regression suite still validates all expected reports from the generated
+fake log files, *and now additionally checks* the event/log formats for every
+case, rotating the CLI modes among default (both), human-only, script-only.
+
+Manifest coverage:
+
+- 1,000 configurations, 100 reusable fake log sets and 100 component names
+- 300–10,000 log lines per set, rotation count 0–10
+- 5–10 patterns per configuration, 1–10 log-message statements per pattern
+- 1–10 levels in valid on-hit chains, fanout up to 9
+
+## Java viewer
 
 ```text
-pattern_count_range: [5, 10]
-chain_depth_range: [1, 10]
-fanout_range: [0, 9]
-pattern_step_range: [1, 10]
-rotation_count_range: [0, 10]
-log_line_count_range: [300, 10000]
+cd java-log-viewer
+ant clean jar test
+BUILD SUCCESSFUL
+Viewer parser tests passed
+
+make test
+Viewer parser tests passed
+
+# GUI integration with real Swing components:
+xvfb-run -a java -ea -cp build/classes:build/testclasses ViewerGuiSmokeTest
+Live Swing GUI smoke passed: two nested tabs received real-time updates
 ```
 
-Windows and macOS use the same CMake project. On Windows 10+, use `build.bat` from a Visual Studio 2022 Developer Command Prompt.
+The native matcher was also run against `examples/patterndetect.conf` and its
+actual `.script.log` was passed to the Java parser interoperability test:
+
+```text
+Verified 8 native operation log events
+Viewer parser tests passed
+```
+
+The GUI smoke test starts a real Swing window, appends records while running,
+selects a root row, opens a child tab, appends a child, opens a grandchild tab,
+appends its child, then verifies both opened tabs update.
+
+## Second compiler and integration checks
+
+The project and native tests also built and ran using Clang++ on Linux.
+The application passed its original smoke tests under that compiler.
+An additional integration check verified that `use processing-folder` places
+both operation logs in the configured folder (including a path with spaces),
+mutually exclusive output modes are rejected, and the alternate spelling
+`--script-readable--only` is accepted.
+
+XML parsing was successful for the NetBeans metadata and Ant build file.
+
+## Remaining platform verification
+
+- Windows 10+/11 (Visual Studio 2022, native JDK/OpenJDK): not executed here.
+- macOS Intel/Apple Silicon builds, Java JDK/OpenJDK: not executed here.
+- Apache NetBeans 16 IDE actions: project metadata provided, not opened here.
+- Run targets on the actual OSes for release qualification.

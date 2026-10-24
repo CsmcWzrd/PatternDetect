@@ -40,3 +40,15 @@ if(WIN32)
 endif()
 
 install(TARGETS patterndetect RUNTIME DESTINATION bin)
+
+# Optional native test target. The Java viewer is never built by default.
+option(PATTERNDETECT_BUILD_TESTS "Build native operation-log unit tests" OFF)
+if(PATTERNDETECT_BUILD_TESTS)
+    enable_testing()
+    add_executable(operation_log_test tests/test_operation_log.cpp)
+    target_include_directories(operation_log_test PRIVATE src)
+    if(WIN32)
+        target_link_libraries(operation_log_test PRIVATE ws2_32)
+    endif()
+    add_test(NAME operation_log_test COMMAND operation_log_test)
+endif()
