@@ -1,5 +1,5 @@
 # Standalone optional Java Swing viewer (never built by the parent CMake project).
-# JDK/OpenJDK 11+ and GNU make, including MinGW/MSYS on Windows.
+# JDK/OpenJDK 8+ and GNU make, including MinGW/MSYS on Windows.
 JAVAC ?= javac
 JAVA ?= java
 JAR ?= jar
@@ -16,13 +16,14 @@ JARFILE := dist/PatternDetectLogViewer.jar
 all: $(JARFILE)
 $(JARFILE): $(SOURCES)
 	mkdir -p $(CLASSES) dist
-	$(JAVAC) --release 11 -encoding UTF-8 -d $(CLASSES) $(SOURCES)
-	$(JAR) --create --file $(JARFILE) --main-class patterndetect.viewer.LiveLogViewer -C $(CLASSES) .
+	$(JAVAC) -source 8 -target 8 -encoding UTF-8 -d $(CLASSES) $(SOURCES)
+	$(JAR) cfe $(JARFILE) patterndetect.viewer.LiveLogViewer -C $(CLASSES) .
 run: all
 	$(JAVA) -jar $(JARFILE) $(ARGS)
 test: all
 	mkdir -p build/testclasses
-	$(JAVAC) --release 11 -encoding UTF-8 -cp $(CLASSES) -d build/testclasses tests/ViewerParserTest.java
+	$(JAVAC) -source 8 -target 8 -encoding UTF-8 -cp $(CLASSES) -d build/testclasses tests/*.java
 	$(JAVA) -ea -cp "$(CLASSES)$(CP_SEP)build/testclasses" ViewerParserTest
+	$(JAVA) -ea -cp "$(CLASSES)$(CP_SEP)build/testclasses" Java8JarCompatibilityTest $(JARFILE)
 clean:
 	rm -rf build dist

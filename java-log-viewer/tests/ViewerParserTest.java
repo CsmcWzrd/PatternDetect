@@ -18,7 +18,7 @@ public class ViewerParserTest {
         require(r.message.contains(OperationRecord.HUMAN_SEP), "decoded delimiter");
         require(r.summary().equals("Match"), "summary");
         require(r.renderHuman().endsWith("\n\n\n"), "human record terminator");
-        require(OperationRecord.wrap("X".repeat(400)).lines().allMatch(s -> s.length() <= 128), "wrap width");
+        require(allLinesWithin128(OperationRecord.wrap(repeat("X", 400))), "wrap width");
         require(OperationRecord.unescape("a\\\\b").equals("a\\b"), "backslash escape");
         expectFailure("not a log");
         expectFailure(line + OperationRecord.SCRIPT_SEP + "sixth");
@@ -30,7 +30,7 @@ public class ViewerParserTest {
                 OperationRecord p = OperationRecord.parse(record);
                 require(p.id > oldId, "event ids strictly increasing");
                 require(p.parentId < p.id, "parent must precede child");
-                require(p.renderHuman().lines().allMatch(s -> s.length() <= 128), "native human width");
+                require(allLinesWithin128(p.renderHuman()), "native human width");
                 oldId = p.id;
             }
             System.out.println("Verified " + records.size() + " native operation log events");
@@ -38,6 +38,15 @@ public class ViewerParserTest {
         System.out.println("Viewer parser tests passed");
     }
 
+    private static String repeat(String value, int count) {
+        StringBuilder b = new StringBuilder(count * value.length());
+        for (int i = 0; i < count; i++) b.append(value);
+        return b.toString();
+    }
+    private static boolean allLinesWithin128(String text) {
+        for (String line : text.split("\\n", -1)) if (line.length() > 128) return false;
+        return true;
+    }
     private static void require(boolean yes, String msg) { if (!yes) throw new AssertionError(msg); }
     private static void expectFailure(String line) {
         try { OperationRecord.parse(line); throw new AssertionError("invalid input accepted"); }

@@ -9,7 +9,7 @@
     <target name="clean"><delete dir="${build.dir}"/><delete dir="${dist.dir}"/></target>
     <target name="compile">
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false" encoding="UTF-8" release="11"/>
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false" encoding="UTF-8" source="1.8" target="1.8"/>
     </target>
     <target name="jar" depends="compile">
         <mkdir dir="${dist.dir}"/>
@@ -22,13 +22,17 @@
             <arg line="${run.args}"/>
         </java>
     </target>
-    <target name="test" depends="compile">
+    <target name="test" depends="jar">
         <mkdir dir="${build.dir}/testclasses"/>
-        <javac srcdir="tests" destdir="${build.dir}/testclasses" includeantruntime="false" encoding="UTF-8" release="11">
+        <javac srcdir="tests" destdir="${build.dir}/testclasses" includeantruntime="false" encoding="UTF-8" source="1.8" target="1.8">
             <classpath><pathelement location="${classes.dir}"/></classpath>
         </javac>
         <java classname="ViewerParserTest" fork="true" failonerror="true">
             <classpath><pathelement location="${classes.dir}"/><pathelement location="${build.dir}/testclasses"/></classpath>
+        </java>
+        <java classname="Java8JarCompatibilityTest" fork="true" failonerror="true">
+            <classpath><pathelement location="${classes.dir}"/><pathelement location="${build.dir}/testclasses"/></classpath>
+            <arg value="${dist.dir}/PatternDetectLogViewer.jar"/>
         </java>
     </target>
 </project>

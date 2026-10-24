@@ -89,3 +89,52 @@ XML parsing was successful for the NetBeans metadata and Ant build file.
 - macOS Intel/Apple Silicon builds, Java JDK/OpenJDK: not executed here.
 - Apache NetBeans 16 IDE actions: project metadata provided, not opened here.
 - Run targets on the actual OSes for release qualification.
+
+## Java 8 compatibility repair — 2026-10-24
+
+The earlier Java viewer release compiled `LiveLogViewer` for class-file major
+version **55** (Java 11); Java 8 JRE accepts only up to **52**. The Java 8
+release fixes the Ant, GNU Make, Windows `build.bat`, and NetBeans project
+source level to **1.8**, uses Java 8-compatible `jar cfe` packaging syntax,
+and replaces Java 11-only `String.repeat`/`String.lines` calls in tests.
+All production Java sources and tests now compile at Java 8 source/target.
+
+Verified under Linux using OpenJDK **21** as the compiler and test runtime:
+
+```text
+$ ant clean jar test
+Viewer parser tests passed
+Java 8 JAR compatibility check passed: 5 classes, all major version <= 52
+BUILD SUCCESSFUL
+
+$ make clean && make test
+Viewer parser tests passed
+Java 8 JAR compatibility check passed: 5 classes, all major version <= 52
+
+$ javap -verbose -classpath dist/PatternDetectLogViewer.jar patterndetect.viewer.LiveLogViewer
+major version: 52
+
+$ xvfb-run -a java -ea -cp build/classes:build/testclasses ViewerGuiSmokeTest
+Live Swing GUI smoke passed: two nested tabs received real-time updates
+
+$ java -cp build/classes:build/testclasses ViewerParserTest <native-script-log>
+Verified 8 native operation log events
+Viewer parser tests passed
+
+$ ctest --output-on-failure
+100% tests passed, 0 tests failed out of 1
+
+$ ./tests/run_smoke_tests.sh ./build/patterndetect
+PatternDetect smoke tests passed
+
+$ python3 tests/run_large_suite.py --binary ./build/patterndetect --jobs 8 --report tests/LARGE_SUITE_VALIDATION_JAVA8_UPDATE.md
+PatternDetect large suite: 1000 cases, failures=0, elapsed=2.874s
+```
+
+A no-argument launch using `xvfb-run` opened the new GUI process without
+stderr errors; it was intentionally terminated by the test timeout.
+
+**Environment limitation:** Java 8 JRE on Windows 11 was not available in this
+Linux build environment. The bytecode version is validated exhaustively, and
+the source uses Java 8 APIs, but a physical Windows 11 / Java 8 runtime test
+remains to be performed by the user or a Windows CI runner.

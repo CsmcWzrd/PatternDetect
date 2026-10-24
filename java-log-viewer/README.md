@@ -1,6 +1,6 @@
 # PatternDetect Live Operation Log Viewer
 
-A **standalone Java Swing** application using JDK/OpenJDK **11 or later**. It
+A **standalone Java Swing** application using JDK/OpenJDK **8 or later**. It
 follows PatternDetect's `.script.log` stream and renders **the corresponding
 human-readable five-field records** in a hierarchical tabbed browser. It does
 not read or interfere with the log-detection engine. It is **not built** by the
@@ -24,7 +24,7 @@ make test
 java -jar dist/PatternDetectLogViewer.jar --log /path/to/file.script.log
 ```
 
-**Native Windows Command Prompt** (JDK 11+ on PATH):
+**Native Windows Command Prompt** (JDK 8+ on PATH):
 
 ```bat
 cd java-log-viewer
@@ -34,7 +34,26 @@ java -jar dist\PatternDetectLogViewer.jar --log "C:\path\to\file.script.log"
 
 The portable jar uses only the standard Java library (no Maven/Gradle
 plugins, external dependencies, JavaFX, or native OS libraries). It runs on
-Oracle JDK and OpenJDK. GUI requires a desktop graphics environment.
+Oracle JDK/JRE and OpenJDK/OpenJRE 8 and newer. GUI requires a desktop graphics environment.
+
+## Java 8 / Windows 11 compatibility
+
+The distributed JAR is compiled for **Java 8 bytecode (class-file major version
+52)**. The prior release was compiled for Java 11 (major version 55) and would
+fail under Java 8 with `UnsupportedClassVersionError`. This version uses only
+Java 8 language and standard library APIs, including in its tests. If launching
+from a Java application manager, remove its cached older JAR and import this
+new JAR, then select your installed Java 8 or newer runtime.
+
+Use `java -version` to confirm the selected runtime. With a JDK installed, run:
+
+```sh
+javap -verbose -classpath dist/PatternDetectLogViewer.jar patterndetect.viewer.LiveLogViewer
+# Look for: major version: 52
+```
+ If multiple Java installations exist, explicitly launch
+with the desired JRE's `java.exe` on Windows. JRE 8 can **run** this JAR; a JDK
+(not a JRE alone) is required to **build** it.
 
 ## Apache NetBeans 16 (2022)
 
@@ -45,8 +64,8 @@ actions. For **Run**, set Ant property `run.args=--log /path/to/file.script.log`
 (or open the log from the application's **File > Open operation log...** menu).
 
 NetBeans 16, released November 30, 2022, was the final NetBeans release of
-calendar year 2022. A Java 11 toolchain is sufficient; JDK/OpenJDK 17 or newer
-also works. It was not the last release of NetBeans overall.
+calendar year 2022. Java 8 is the minimum runtime and build target. JDK/OpenJDK 8, 11, 17 and newer can compile the source with the included
+source/target 8 settings. NetBeans 16 was not the last release of NetBeans overall.
 
 ## Using the live viewer
 
@@ -84,9 +103,14 @@ retain the canonical single-line event framing needed for this live parser.
 ```sh
 ant test
 # On Linux with xvfb-run installed, optional live Swing GUI integration:
-javac --release 11 -cp build/classes -d build/testclasses tests/ViewerGuiSmokeTest.java
+javac -source 8 -target 8 -cp build/classes -d build/testclasses tests/ViewerGuiSmokeTest.java
 xvfb-run -a java -ea -cp build/classes:build/testclasses ViewerGuiSmokeTest
 ```
 
 `tests/ViewerParserTest.java` also accepts a generated PatternDetect `.script.log`
 file as an argument to verify real native C++/Java interoperability.
+
+`tests/Java8JarCompatibilityTest.java` checks every class file in the packaged
+JAR and its executable manifest; `ant test` and `make test` run this check.
+The verification environment uses JDK 21 to produce Java 8 bytecode; the
+resulting JAR has not been run under a real Java 8 VM on Windows in this environment.

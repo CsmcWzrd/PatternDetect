@@ -304,7 +304,7 @@ parser contract, and details.
 ## Optional live Java Swing viewer
 
 `java-log-viewer/` is a standalone Ant/Make/NetBeans (2022 NetBeans 16) Java
-Swing project, **not built by CMake**. Build with JDK/OpenJDK 11+:
+Swing project, **not built by CMake**. Build with JDK/OpenJDK 8+:
 
 ```sh
 cd java-log-viewer
@@ -316,6 +316,11 @@ Open a root-level operation, then click each child event to open the next level
 in a new, live-updating tab. See
 [java-log-viewer/README.md](java-log-viewer/README.md).
 
+The viewer JAR now targets **Java 8** (class-file version 52) instead of Java
+11 (version 55). If an application manager previously installed the old JAR,
+remove or replace its cached copy; the old Java 11 JAR will still fail under
+Java 8. Full instructions: [java-log-viewer/README.md](java-log-viewer/README.md).
+
 ## Test status (October 24, 2026)
 
 - Native C++ build: GCC/CMake on Linux: **pass**.
@@ -325,8 +330,8 @@ in a new, live-updating tab. See
   Covers 100 log sets, 100 component names, 300–10,000 log lines, 0–10
   rotations, 5–10 patterns, 1–10 statements per pattern, and 1–10 chain depth.
   Each case also validates the enabled operation log format(s).
-- Java Swing Ant/Make build and parser tests: **pass** using OpenJDK 21
-  targeting Java 11 class files.
+- Java Swing Ant/Make build, parser tests, and JAR compatibility check: **pass**
+  using OpenJDK 21 targeting Java 8 class files (major version 52).
 - Live GUI smoke with an Xvfb display: **pass**, including 2 levels of
   realtime drilldown and updates to already opened tabs.
 
